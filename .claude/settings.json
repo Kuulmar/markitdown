@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": { "source": { "source": "github", "repo": "anthropics/claude-plugins-official" } },
+    "anthropic-agent-skills": { "source": { "source": "github", "repo": "anthropics/skills" } },
+    "claude-community": { "source": { "source": "github", "repo": "anthropics/claude-plugins-community" } },
+    "superpowers-marketplace": { "source": { "source": "github", "repo": "obra/superpowers-marketplace" } },
+    "claude-code-workflows": { "source": { "source": "github", "repo": "wshobson/agents" } },
+    "claude-code-skills": { "source": { "source": "github", "repo": "alirezarezvani/claude-skills" } },
+    "buildwithclaude": { "source": { "source": "github", "repo": "davepoon/buildwithclaude" } },
+    "ecc": { "source": { "source": "github", "repo": "affaan-m/ECC" } },
+    "karpathy-skills": { "source": { "source": "github", "repo": "multica-ai/andrej-karpathy-skills" } },
+    "planning-with-files": { "source": { "source": "github", "repo": "OthmanAdi/planning-with-files" } },
+    "marketingskills": { "source": { "source": "github", "repo": "coreyhaines31/marketingskills" } },
+    "academic-research-skills": { "source": { "source": "github", "repo": "Imbad0202/academic-research-skills" } },
+    "agricidaniel-claude-seo": { "source": { "source": "github", "repo": "AgriciDaniel/claude-seo" } },
+    "anthropic-cybersecurity-skills": { "source": { "source": "github", "repo": "mukul975/Anthropic-Cybersecurity-Skills" } },
+    "n-skills": { "source": { "source": "github", "repo": "numman-ali/n-skills" } }
+  },
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "document-skills@anthropic-agent-skills": true,
+    "superpowers@superpowers-marketplace": true,
+    "planning-with-files@planning-with-files": true,
+    "andrej-karpathy-skills@karpathy-skills": true
+  }
+}
