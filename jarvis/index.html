@@ -1,4 +1,4 @@
-<title>Jarvis Pessoal</title>
+<title>Maiko Pessoal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -129,12 +129,19 @@ button { font: inherit; cursor: pointer; }
 #mem { width: 100%; min-height: 120px; resize: vertical; font-size: 12.5px; line-height: 1.5; box-sizing: border-box; }
 .saved { font-family: var(--f-mono); font-size: 10.5px; color: var(--green); }
 
+.fl { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+#v-sel { width: 100%; min-width: 0; background: #030810; color: var(--fg); border: 1px solid var(--line); padding: 6px 8px; font: 13px var(--f-body); }
+.ck { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.ck input, .sl input { accent-color: var(--cyan); }
+.sl { display: grid; grid-template-columns: 78px minmax(0,1fr) 38px; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.sl output { font-family: var(--f-mono); font-size: 11.5px; color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div class="brand">J.A.R.V.I.S<small>seu assistente pessoal · comando por voz</small></div>
+    <div class="brand">M.A.I.K.O<small>seu assistente pessoal · comando por voz</small></div>
     <div class="status" aria-label="Conexões">
       <span class="chip" id="st-claude" data-s="warn"><i></i>Claude</span>
       <span class="chip" id="st-gmail" data-s="warn"><i></i>Gmail</span>
@@ -159,17 +166,17 @@ button { font: inherit; cursor: pointer; }
         <div class="ph"><span>Núcleo</span><span id="tier-label">modo rápido</span></div>
         <div class="pb">
           <div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas><div class="state" id="state">Em espera</div></div>
-          <div class="answer" id="answer" aria-live="polite"><span class="who">Jarvis</span>Bom dia. Fale ou digite o que precisa: eu escolho o agente certo e faço por você.</div>
+          <div class="answer" id="answer" aria-live="polite"><span class="who">Maiko</span>Bom dia. Fale ou digite o que precisa: eu escolho o agente certo e faço por você.</div>
           <form class="cmd" id="form">
-            <button type="button" class="mic" id="mic" aria-label="Falar com o Jarvis" title="Falar (ou segure a barra de espaço fora da caixa de texto)">
+            <button type="button" class="mic" id="mic" aria-label="Falar com o Maiko" title="Falar (ou segure a barra de espaço fora da caixa de texto)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
             </button>
-            <textarea id="q" rows="1" placeholder="Ex.: Jarvis, qual é minha agenda de hoje?" aria-label="Comando"></textarea>
+            <textarea id="q" rows="1" placeholder="Ex.: Maiko, qual é minha agenda de hoje?" aria-label="Comando"></textarea>
             <button class="send" id="send" type="submit">ENVIAR</button>
           </form>
           <div class="row">
             <div class="toggles">
-              <button type="button" class="tg" id="tg-voice" aria-pressed="true">Jarvis fala as respostas</button>
+              <button type="button" class="tg" id="tg-voice" aria-pressed="true">Maiko fala as respostas</button>
               <button type="button" class="tg" id="tg-tier" aria-pressed="false">Modo profundo</button>
               <button type="button" class="btn" id="stop" hidden>Parar</button>
               <button type="button" class="tg" id="clear">Nova conversa</button>
@@ -188,8 +195,20 @@ button { font: inherit; cursor: pointer; }
         <div class="pb"><canvas id="wave" aria-hidden="true"></canvas></div>
       </div>
       <div class="panel">
-        <div class="ph"><span>Diagnóstico</span><span>reports to Jarvis</span></div>
+        <div class="ph"><span>Diagnóstico</span><span>reports to Maiko</span></div>
         <div class="pb"><div class="log" id="log" role="log"></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span>Voz do Maiko</span><span id="voice-count">—</span></div>
+        <div class="pb">
+          <label class="fl" for="v-sel">Voz</label>
+          <select id="v-sel"></select>
+          <label class="ck"><input type="checkbox" id="v-all"> Mostrar vozes de outros idiomas</label>
+          <div class="sl"><label for="v-rate">Velocidade</label><input type="range" id="v-rate" min="0.6" max="1.6" step="0.05"><output id="v-rate-o"></output></div>
+          <div class="sl"><label for="v-pitch">Tom</label><input type="range" id="v-pitch" min="0.5" max="1.6" step="0.05"><output id="v-pitch-o"></output></div>
+          <button type="button" class="btn" id="v-test">Testar voz</button>
+          <span class="hint">As vozes vêm do seu aparelho. No Edge aparecem vozes naturais (ex.: Francisca, Antonio, Thalita); no Mac, Luciana e Felipe.</span>
+        </div>
       </div>
       <div class="panel">
         <div class="ph"><span>Tarefas</span><span id="task-count">0 abertas</span></div>
@@ -201,8 +220,8 @@ button { font: inherit; cursor: pointer; }
       <div class="panel">
         <div class="ph"><span>Memória · como eu trabalho</span><span class="saved" id="mem-saved" hidden>salvo</span></div>
         <div class="pb">
-          <textarea id="mem" aria-label="Memória do Jarvis"></textarea>
-          <span class="hint">O Jarvis lê isto antes de cada pedido. Diga "Jarvis, lembre que…" para ele anotar aqui sozinho.</span>
+          <textarea id="mem" aria-label="Memória do Maiko"></textarea>
+          <span class="hint">O Maiko lê isto antes de cada pedido. Diga "Maiko, lembre que…" para ele anotar aqui sozinho.</span>
         </div>
       </div>
     </section>
@@ -222,7 +241,7 @@ button { font: inherit; cursor: pointer; }
 
   // ---------- Agentes ----------
   const AGENTS = {
-    jarvis:   { name: "Jarvis",   role: "principal",   skills: ["Entender", "Delegar", "Responder"], cmd: "Jarvis, o que você consegue fazer por mim?" },
+    maiko:   { name: "Maiko",   role: "principal",   skills: ["Entender", "Delegar", "Responder"], cmd: "Maiko, o que você consegue fazer por mim?" },
     scout:    { name: "Scout",    role: "inteligência", skills: ["Agenda", "E-mails", "Briefing"],   cmd: "Scout, me dê o briefing da manhã: agenda de hoje e e-mails importantes." },
     operator: { name: "Operator", role: "operações",    skills: ["Responder e-mails", "Rascunhos", "Suporte"], cmd: "Operator, quais e-mails não lidos precisam de resposta? Prepare rascunhos." },
     mark:     { name: "Mark",     role: "dev",          skills: ["Código", "Revisão", "Depuração"],  cmd: "Mark, preciso de ajuda com um código." },
@@ -231,7 +250,7 @@ button { font: inherit; cursor: pointer; }
   const agentsEl = $("agents");
   for (const [id, a] of Object.entries(AGENTS)) {
     const el = document.createElement("div");
-    el.className = "agent"; el.dataset.id = id; el.dataset.active = String(id === "jarvis");
+    el.className = "agent"; el.dataset.id = id; el.dataset.active = String(id === "maiko");
     el.innerHTML = `<div class="av">${a.name[0]}</div><div class="an">${a.name}<span>${a.role}</span></div><div class="skills">${a.skills.map(s => `<b>${s}</b>`).join("")}</div>`;
     const b = document.createElement("button");
     b.className = "btn"; b.type = "button"; b.textContent = id === "scout" ? "Briefing da manhã" : "Acionar";
@@ -344,14 +363,40 @@ button { font: inherit; cursor: pointer; }
   tgVoice.setAttribute("aria-pressed", String(voiceOn));
   tgVoice.addEventListener("click", () => { voiceOn = !voiceOn; store.set("voice", voiceOn); tgVoice.setAttribute("aria-pressed", String(voiceOn)); if (!voiceOn) stopSpeaking(); });
   const synth = "speechSynthesis" in window ? window.speechSynthesis : null;
-  function ptVoice() { const vs = synth ? synth.getVoices() : []; return vs.find(v => /pt-BR/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null; }
+  const vs = Object.assign({ uri: "", rate: 1.05, pitch: 1, all: false }, store.get("voiceCfg", {}));
+  const vSel = $("v-sel"), vAll = $("v-all"), vRate = $("v-rate"), vPitch = $("v-pitch");
+  const allVoices = () => (synth ? synth.getVoices() : []);
+  function pickVoice() {
+    const list = allVoices();
+    return list.find(v => v.voiceURI === vs.uri) || list.find(v => /pt-BR/i.test(v.lang)) || list.find(v => /^pt/i.test(v.lang)) || null;
+  }
+  function renderVoices() {
+    const list = allVoices();
+    const pt = list.filter(v => /^pt/i.test(v.lang));
+    const shown = (vs.all || !pt.length) ? list : pt;
+    const cur = pickVoice();
+    vSel.textContent = "";
+    if (!shown.length) { const o = document.createElement("option"); o.textContent = synth ? "Nenhuma voz encontrada neste aparelho" : "Este navegador não fala"; vSel.appendChild(o); vSel.disabled = true; }
+    else vSel.disabled = false;
+    const sorted = [...shown].sort((a, b) => (/pt-BR/i.test(b.lang) - /pt-BR/i.test(a.lang)) || (/natural|online|neural|premium|enhanced/i.test(b.name) - /natural|online|neural|premium|enhanced/i.test(a.name)) || a.name.localeCompare(b.name));
+    for (const v of sorted) { const o = document.createElement("option"); o.value = v.voiceURI; o.textContent = `${v.name} · ${v.lang}`; if (cur && v.voiceURI === cur.voiceURI) o.selected = true; vSel.appendChild(o); }
+    $("voice-count").textContent = list.length ? `${pt.length} em português` : "—";
+  }
+  function saveVoice() { store.set("voiceCfg", vs); $("v-rate-o").textContent = vs.rate.toFixed(2); $("v-pitch-o").textContent = vs.pitch.toFixed(2); }
+  vAll.checked = vs.all; vRate.value = vs.rate; vPitch.value = vs.pitch; saveVoice();
+  vSel.addEventListener("change", () => { vs.uri = vSel.value; saveVoice(); });
+  vAll.addEventListener("change", () => { vs.all = vAll.checked; saveVoice(); renderVoices(); });
+  vRate.addEventListener("input", () => { vs.rate = Number(vRate.value); saveVoice(); });
+  vPitch.addEventListener("input", () => { vs.pitch = Number(vPitch.value); saveVoice(); });
+  $("v-test").addEventListener("click", () => { const on = voiceOn; voiceOn = true; speak("Olá, eu sou o Maiko. É assim que vou falar com você."); voiceOn = on; });
+  if (synth) { renderVoices(); synth.addEventListener ? synth.addEventListener("voiceschanged", renderVoices) : (synth.onvoiceschanged = renderVoices); } else renderVoices();
   function stopSpeaking() { try { synth && synth.cancel(); } catch {} if (mode === "speaking") setMode("idle"); }
   function speak(text) {
     if (!voiceOn || !synth || !text) { setMode("idle"); return; }
     try {
       synth.cancel();
       const u = new SpeechSynthesisUtterance(text.slice(0, 1200));
-      u.lang = "pt-BR"; const v = ptVoice(); if (v) u.voice = v; u.rate = 1.05;
+      const v = pickVoice(); u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch;
       u.onstart = () => setMode("speaking");
       u.onend = u.onerror = () => { if (mode === "speaking") setMode("idle"); };
       synth.speak(u);
@@ -397,7 +442,7 @@ button { font: inherit; cursor: pointer; }
   let nextId = tasks.reduce((m, t) => Math.max(m, t.id), 0) + 1;
   function renderTasks() {
     const ul = $("tasks"); ul.textContent = "";
-    if (!tasks.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "Nenhuma tarefa. Diga \"Jarvis, anota que…\"."; ul.appendChild(li); }
+    if (!tasks.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "Nenhuma tarefa. Diga \"Maiko, anota que…\"."; ul.appendChild(li); }
     for (const t of tasks) {
       const li = document.createElement("li"); li.dataset.done = String(t.done);
       const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = t.done; cb.id = "task-" + t.id; cb.setAttribute("aria-label", t.text);
@@ -424,7 +469,7 @@ button { font: inherit; cursor: pointer; }
   // ---------- Conversa ----------
   let turns = store.get("turns", []);
   if (!Array.isArray(turns)) turns = [];
-  $("clear").addEventListener("click", () => { turns = []; store.set("turns", turns); showAnswer("Jarvis", "Conversa nova. Pode falar."); log("jarvis", "contexto limpo", "ok"); });
+  $("clear").addEventListener("click", () => { turns = []; store.set("turns", turns); showAnswer("Maiko", "Conversa nova. Pode falar."); log("maiko", "contexto limpo", "ok"); });
 
   let deep = store.get("deep", false);
   const tgTier = $("tg-tier");
@@ -477,16 +522,16 @@ button { font: inherit; cursor: pointer; }
   function buildTools() {
     const tools = [
       { name: "listar_tarefas", description: "Lista as tarefas do usuário (id, texto, feita).",
-        execute: () => { log("jarvis", "read tarefas", "ok"); return tasks; } },
+        execute: () => { log("maiko", "read tarefas", "ok"); return tasks; } },
       { name: "adicionar_tarefa", description: "Adiciona uma tarefa à lista do usuário. Retorna a tarefa criada.",
         inputSchema: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
-        execute: (i) => { const t = { id: nextId++, text: String(i.texto || "").slice(0, 200), done: false }; if (!t.text) throw new Error("texto vazio"); tasks.push(t); saveTasks(); log("jarvis", "write tarefa", "ok"); return t; } },
+        execute: (i) => { const t = { id: nextId++, text: String(i.texto || "").slice(0, 200), done: false }; if (!t.text) throw new Error("texto vazio"); tasks.push(t); saveTasks(); log("maiko", "write tarefa", "ok"); return t; } },
       { name: "concluir_tarefa", description: "Marca uma tarefa como feita pelo id.",
         inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
-        execute: (i) => { const t = tasks.find(o => o.id === Number(i.id)); if (!t) throw new Error("tarefa não encontrada"); t.done = true; saveTasks(); log("jarvis", "tarefa concluída", "ok"); return t; } },
-      { name: "lembrar", description: "Guarda permanentemente uma preferência ou regra do usuário sobre como ele quer que as coisas sejam feitas (memória do Jarvis). Use quando ele disser 'lembre que', 'sempre faça', 'a partir de agora'.",
+        execute: (i) => { const t = tasks.find(o => o.id === Number(i.id)); if (!t) throw new Error("tarefa não encontrada"); t.done = true; saveTasks(); log("maiko", "tarefa concluída", "ok"); return t; } },
+      { name: "lembrar", description: "Guarda permanentemente uma preferência ou regra do usuário sobre como ele quer que as coisas sejam feitas (memória do Maiko). Use quando ele disser 'lembre que', 'sempre faça', 'a partir de agora'.",
         inputSchema: { type: "object", properties: { nota: { type: "string" } }, required: ["nota"] },
-        execute: (i) => { const n = String(i.nota || "").trim().slice(0, 400); if (!n) throw new Error("nota vazia"); memEl.value = (memEl.value.trim() + "\n- " + n).trim(); saveMem(); log("jarvis", "write memória", "ok"); return "memória salva"; } },
+        execute: (i) => { const n = String(i.nota || "").trim().slice(0, 400); if (!n) throw new Error("nota vazia"); memEl.value = (memEl.value.trim() + "\n- " + n).trim(); saveMem(); log("maiko", "write memória", "ok"); return "memória salva"; } },
     ];
     if (mcp) {
       tools.push(
@@ -513,11 +558,11 @@ button { font: inherit; cursor: pointer; }
 
   function rules() {
     const now = new Date();
-    return `Você é o JARVIS, assistente pessoal do usuário, operando um painel com comando por voz.
+    return `Você é o MAIKO, assistente pessoal do usuário, operando um painel com comando por voz.
 Data e hora local agora: ${now.toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })} (ISO local ${localDate(now)}).
 
 Sua equipe de agentes (você delega e fala em nome de quem fez o trabalho):
-- Jarvis: agente principal; conversa geral, dúvidas, planejamento, escrita.
+- Maiko: agente principal; conversa geral, dúvidas, planejamento, escrita.
 - Scout: inteligência; agenda, e-mails, briefing da manhã, levantar informação.
 - Operator: operações; responder e-mails (criando rascunhos), suporte, publicar e organizar.
 - Mark: desenvolvimento; código, revisão, depuração, explicações técnicas.
@@ -540,7 +585,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
 
   let ctl = null, busy = false;
   const SAMPLE_MSG = {
-    not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Jarvis.",
+    not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Maiko.",
     sampling_disabled: "O Claude não está disponível para esta conta.",
     rate_limited: "Muitos pedidos seguidos ou limite de uso atingido. Espere um pouco e tente de novo.",
     session_expired: "Sua sessão expirou. Entre de novo no claude.ai.",
@@ -558,14 +603,14 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
     stopSpeaking();
     $("q").value = ""; autoGrow();
     log("voce", q.length > 70 ? q.slice(0, 70) + "…" : q);
-    log("jarvis", "session jarvis.run");
-    setActive("jarvis"); setMode("thinking"); showAnswer("Jarvis", "Processando…");
+    log("maiko", "session maiko.run");
+    setActive("maiko"); setMode("thinking"); showAnswer("Maiko", "Processando…");
     turns.push({ role: "user", content: q });
     const recent = turns.slice(-12);
     while (recent.length && recent[0].role !== "user") recent.shift();
     const input = [{ role: "user", content: rules() }, ...recent];
     ctl = new AbortController();
-    let agentId = "jarvis";
+    let agentId = "maiko";
     const parse = (text) => {
       const m = text.match(/^\s*AGENTE:\s*([A-Za-zÀ-ú]+)\s*\n?/i);
       if (m) { const id = m[1].toLowerCase(); if (AGENTS[id]) agentId = id; return text.slice(m[0].length).trim(); }
@@ -579,7 +624,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
       const body = parse(text) || "Feito.";
       showAnswer(AGENTS[agentId].name, body + (truncated ? "\n(resposta cortada)" : ""));
       setActive(agentId);
-      log(agentId, "reports to jarvis", "ok");
+      log(agentId, "reports to maiko", "ok");
       turns.push({ role: "assistant", content: `AGENTE: ${AGENTS[agentId].name}\n${body}` });
       turns = turns.slice(-20); store.set("turns", turns);
       chip("st-claude", "ok");
@@ -587,10 +632,10 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
     } catch (e) {
       turns.pop();
       setMode("idle");
-      if (e && e.code === "cancelled") { showAnswer("Jarvis", (e.text && parse(e.text)) || "Parado."); log("jarvis", "interrompido"); }
+      if (e && e.code === "cancelled") { showAnswer("Maiko", (e.text && parse(e.text)) || "Parado."); log("maiko", "interrompido"); }
       else {
         const msg = SAMPLE_MSG[e && e.code] || "Falha temporária ao falar com o Claude. Tente de novo.";
-        showAnswer("Jarvis", msg); log("jarvis", msg, "err");
+        showAnswer("Maiko", msg); log("maiko", msg, "err");
         if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) chip("st-claude", "off");
       }
     } finally {
@@ -607,13 +652,13 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   qEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
 
   // ---------- Inicialização ----------
-  log("jarvis", "session boot");
-  log("jarvis", `${tasks.filter(t => !t.done).length} tarefas abertas`, "ok");
+  log("maiko", "session boot");
+  log("maiko", `${tasks.filter(t => !t.done).length} tarefas abertas`, "ok");
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then((s) => {
       sample = s;
       chip("st-claude", s ? "ok" : "off");
-      log("jarvis", s ? "connect claude" : "claude indisponível", s ? "ok" : "err");
+      log("maiko", s ? "connect claude" : "claude indisponível", s ? "ok" : "err");
     });
     window.claude.use("mcp").then(async (m) => {
       mcp = m;
@@ -627,9 +672,8 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
     });
   } else {
     chip("st-claude", "off"); chip("st-gmail", "off"); chip("st-cal", "off");
-    notice("Abra esta página pelo link do claude.ai para o Jarvis conversar com o Claude e acessar Gmail e Agenda.");
+    notice("Abra esta página pelo link do claude.ai para o Maiko conversar com o Claude e acessar Gmail e Agenda.");
   }
-  if (synth) synth.onvoiceschanged = () => {};
-  if (turns.length) { const last = turns[turns.length - 1]; if (last.role === "assistant") { const m = last.content.match(/^AGENTE:\s*(\w+)\n/); const id = m && AGENTS[m[1].toLowerCase()] ? m[1].toLowerCase() : "jarvis"; showAnswer(AGENTS[id].name, last.content.replace(/^AGENTE:.*\n/, "")); setActive(id); } }
+  if (turns.length) { const last = turns[turns.length - 1]; if (last.role === "assistant") { const m = last.content.match(/^AGENTE:\s*(\w+)\n/); const id = m && AGENTS[m[1].toLowerCase()] ? m[1].toLowerCase() : "maiko"; showAnswer(AGENTS[id].name, last.content.replace(/^AGENTE:.*\n/, "")); setActive(id); } }
 })();
 </script>
