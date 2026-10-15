@@ -90,6 +90,9 @@ button { font: inherit; cursor: pointer; }
 .answer { min-height: 72px; font-size: 16px; line-height: 1.6; text-align: center; max-width: 62ch; margin: 0 auto; color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer .who { display: block; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .replay { align-self: center; }
+.replay.call { background: var(--cyan); color: var(--bg); font-size: 15px; padding: 12px 22px; font-weight: 600; animation: callpulse 1.4s ease-in-out infinite; }
+@keyframes callpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(95,212,244,0.55); } 50% { box-shadow: 0 0 0 10px rgba(95,212,244,0); } }
+@media (prefers-reduced-motion: reduce) { .replay.call { animation: none; } }
 .cmd { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
 .mic { width: 46px; border: 1px solid var(--cyan-dim); background: transparent; color: var(--cyan); display: grid; place-items: center; }
 .mic[data-on="true"] { background: var(--cyan); color: var(--bg); box-shadow: 0 0 18px rgba(95,212,244,0.5); }
@@ -405,17 +408,25 @@ button { font: inherit; cursor: pointer; }
         // O iOS divide falas longas mal; manda em frases curtas
         const parts = text.slice(0, 1500).match(/[^.!?\n]+[.!?]*/g) || [text];
         const v = pickVoice();
+        let started = false;
+        const rb = $("replay");
         parts.forEach((p, i) => {
           if (!p.trim()) return;
           const u = new SpeechSynthesisUtterance(p.trim());
           u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch; u.volume = 1;
-          u.onstart = () => setMode("speaking");
+          u.onstart = () => { started = true; rb.classList.remove("call"); rb.textContent = "🔊 Ouvir resposta"; setMode("speaking"); };
           u.onerror = (e) => { if (e.error && e.error !== "interrupted" && e.error !== "canceled") { log("maiko", "voz: " + e.error, "err"); if (e.error === "not-allowed") notice("O iPhone bloqueou a fala automática. Toque em \"Ouvir resposta\"."); } if (mode === "speaking") setMode("idle"); };
           if (i === parts.length - 1) u.onend = () => { if (mode === "speaking") setMode("idle"); };
           synth.speak(u);
         });
         try { synth.resume(); } catch {}
-        setTimeout(() => { if (mode !== "speaking" && !synth.speaking) setMode("idle"); }, 1500);
+        setTimeout(() => {
+          if (!started && !synth.speaking) {
+            setMode("idle");
+            // iOS bloqueou a fala automática: destaca o botão para ouvir com um toque
+            if (!force) { rb.classList.add("call"); rb.textContent = "🔊 Toque para ouvir o Maiko"; }
+          }
+        }, 1500);
       } catch { setMode("idle"); }
     };
     // No iOS, cancel() seguido de speak() na mesma hora descarta a fala
