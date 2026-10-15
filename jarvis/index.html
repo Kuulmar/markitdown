@@ -181,7 +181,7 @@ button { font: inherit; cursor: pointer; }
               <button type="button" class="btn" id="stop" hidden>Parar</button>
               <button type="button" class="tg" id="clear">Nova conversa</button>
             </div>
-            <span class="hint">Enviar: <kbd>Enter</kbd> · quebra de linha: <kbd>Shift</kbd>+<kbd>Enter</kbd></span>
+            <span class="hint">Enviar: <kbd>Enter</kbd> ou termine falando "enviar"</span>
           </div>
           <div class="notice" id="notice" hidden></div>
         </div>
@@ -410,8 +410,14 @@ button { font: inherit; cursor: pointer; }
   let rec = null, listening = false;
   const DICTATION_TIP = "O microfone do navegador não está liberado aqui. Use o ditado do sistema na caixa de texto: Windows ⊞+H, Mac Fn Fn (ou Wispr Flow), celular: o microfone do teclado. Depois é só dizer \"enviar\" ou apertar Enter.";
   chip("st-voz", synth ? "ok" : "warn");
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const IOS_TIP = "No iPhone, fale pelo teclado: toque no 🎤 do teclado (embaixo, à direita), fale o pedido e termine dizendo \"enviar\". Ele envia sozinho.";
+  function dictationMode() {
+    notice(isIOS ? IOS_TIP : DICTATION_TIP);
+    const q = $("q"); q.focus(); try { q.setSelectionRange(q.value.length, q.value.length); } catch {}
+  }
   function startListening() {
-    if (!SR) { notice(DICTATION_TIP); $("q").focus(); return; }
+    if (!SR || isIOS) { dictationMode(); return; }
     try {
       rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false;
       let finalText = "";
@@ -423,10 +429,11 @@ button { font: inherit; cursor: pointer; }
         }
         $("q").value = (finalText + interim).trim();
       };
-      rec.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") { notice(DICTATION_TIP); chip("st-voz", "warn"); } };
+      rec.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") { dictationMode(); chip("st-voz", "warn"); } };
       rec.onend = () => { listening = false; mic.dataset.on = "false"; if (mode === "listening") setMode("idle"); if (finalText.trim()) ask(); };
       rec.start();
-    } catch { notice(DICTATION_TIP); }
+      setTimeout(() => { if (!listening) { try { rec.abort(); } catch {} dictationMode(); } }, 2000);
+    } catch { dictationMode(); }
   }
   mic.addEventListener("click", () => { if (listening && rec) rec.stop(); else startListening(); });
   // Segurar espaço (fora da caixa de texto) = falar
@@ -584,6 +591,13 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   }
 
   let ctl = null, busy = false;
+  const SEND_WORD = /[\s,.]*\b(enviar|envia|envie|pronto)[.!]?\s*$/i;
+  // iOS só deixa falar depois de um toque: "destrava" a voz no primeiro toque
+  let speechUnlocked = false;
+  addEventListener("pointerdown", () => {
+    if (speechUnlocked || !synth) return; speechUnlocked = true;
+    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch {}
+  }, { capture: true });
   const SAMPLE_MSG = {
     not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Maiko.",
     sampling_disabled: "O Claude não está disponível para esta conta.",
@@ -596,7 +610,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   };
 
   async function ask() {
-    const q = $("q").value.trim().replace(/\s*\benviar\.?$/i, "");
+    const q = $("q").value.trim().replace(SEND_WORD, "").trim();
     if (!q || busy) return;
     if (!sample) { notice("O Claude ainda não está disponível nesta visualização. Abra a página no claude.ai."); return; }
     busy = true; $("send").disabled = true; $("stop").hidden = false; notice("");
@@ -648,7 +662,11 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   $("form").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
   const qEl = $("q");
   function autoGrow() { qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
-  qEl.addEventListener("input", autoGrow);
+  qEl.addEventListener("input", () => {
+    autoGrow();
+    // Ditado: terminar a frase com "enviar" (ou "pronto") envia sozinho
+    if (SEND_WORD.test(qEl.value) && qEl.value.replace(SEND_WORD, "").trim()) { clearTimeout(qEl._send); qEl._send = setTimeout(() => { if (SEND_WORD.test(qEl.value)) ask(); }, 900); }
+  });
   qEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
 
   // ---------- Inicialização ----------
