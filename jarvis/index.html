@@ -89,6 +89,7 @@ button { font: inherit; cursor: pointer; }
 .state { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--cyan); }
 .answer { min-height: 72px; font-size: 16px; line-height: 1.6; text-align: center; max-width: 62ch; margin: 0 auto; color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer .who { display: block; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.replay { align-self: center; }
 .cmd { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
 .mic { width: 46px; border: 1px solid var(--cyan-dim); background: transparent; color: var(--cyan); display: grid; place-items: center; }
 .mic[data-on="true"] { background: var(--cyan); color: var(--bg); box-shadow: 0 0 18px rgba(95,212,244,0.5); }
@@ -166,6 +167,7 @@ button { font: inherit; cursor: pointer; }
         <div class="ph"><span>Núcleo</span><span id="tier-label">modo rápido</span></div>
         <div class="pb">
           <div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas><div class="state" id="state">Em espera</div></div>
+          <button type="button" class="btn replay" id="replay" hidden>🔊 Ouvir resposta</button>
           <div class="answer" id="answer" aria-live="polite"><span class="who">Maiko</span>Bom dia. Fale ou digite o que precisa: eu escolho o agente certo e faço por você.</div>
           <form class="cmd" id="form">
             <button type="button" class="mic" id="mic" aria-label="Falar com o Maiko" title="Falar (ou segure a barra de espaço fora da caixa de texto)">
@@ -388,20 +390,36 @@ button { font: inherit; cursor: pointer; }
   vAll.addEventListener("change", () => { vs.all = vAll.checked; saveVoice(); renderVoices(); });
   vRate.addEventListener("input", () => { vs.rate = Number(vRate.value); saveVoice(); });
   vPitch.addEventListener("input", () => { vs.pitch = Number(vPitch.value); saveVoice(); });
-  $("v-test").addEventListener("click", () => { const on = voiceOn; voiceOn = true; speak("Olá, eu sou o Maiko. É assim que vou falar com você."); voiceOn = on; });
+  $("v-test").addEventListener("click", () => speak("Olá, eu sou o Maiko. É assim que vou falar com você.", true));
+  $("replay").addEventListener("click", () => speak(lastSpoken, true));
+  if (!synth) { chip("st-voz", "off"); }
   if (synth) { renderVoices(); synth.addEventListener ? synth.addEventListener("voiceschanged", renderVoices) : (synth.onvoiceschanged = renderVoices); } else renderVoices();
   function stopSpeaking() { try { synth && synth.cancel(); } catch {} if (mode === "speaking") setMode("idle"); }
-  function speak(text) {
-    if (!voiceOn || !synth || !text) { setMode("idle"); return; }
-    try {
-      synth.cancel();
-      const u = new SpeechSynthesisUtterance(text.slice(0, 1200));
-      const v = pickVoice(); u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch;
-      u.onstart = () => setMode("speaking");
-      u.onend = u.onerror = () => { if (mode === "speaking") setMode("idle"); };
-      synth.speak(u);
-      setTimeout(() => { if (mode !== "speaking" && !synth.speaking) setMode("idle"); }, 1500);
-    } catch { setMode("idle"); }
+  let lastSpoken = "";
+  function speak(text, force) {
+    if (text) lastSpoken = text;
+    $("replay").hidden = !synth || !lastSpoken;
+    if ((!voiceOn && !force) || !synth || !text) { setMode("idle"); return; }
+    const go = () => {
+      try {
+        // O iOS divide falas longas mal; manda em frases curtas
+        const parts = text.slice(0, 1500).match(/[^.!?\n]+[.!?]*/g) || [text];
+        const v = pickVoice();
+        parts.forEach((p, i) => {
+          if (!p.trim()) return;
+          const u = new SpeechSynthesisUtterance(p.trim());
+          u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch; u.volume = 1;
+          u.onstart = () => setMode("speaking");
+          u.onerror = (e) => { if (e.error && e.error !== "interrupted" && e.error !== "canceled") { log("maiko", "voz: " + e.error, "err"); if (e.error === "not-allowed") notice("O iPhone bloqueou a fala automática. Toque em \"Ouvir resposta\"."); } if (mode === "speaking") setMode("idle"); };
+          if (i === parts.length - 1) u.onend = () => { if (mode === "speaking") setMode("idle"); };
+          synth.speak(u);
+        });
+        try { synth.resume(); } catch {}
+        setTimeout(() => { if (mode !== "speaking" && !synth.speaking) setMode("idle"); }, 1500);
+      } catch { setMode("idle"); }
+    };
+    // No iOS, cancel() seguido de speak() na mesma hora descarta a fala
+    if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(go, 150); } else go();
   }
 
   // ---------- Voz: entrada ----------
@@ -409,7 +427,8 @@ button { font: inherit; cursor: pointer; }
   const mic = $("mic");
   let rec = null, listening = false;
   const DICTATION_TIP = "O microfone do navegador não está liberado aqui. Use o ditado do sistema na caixa de texto: Windows ⊞+H, Mac Fn Fn (ou Wispr Flow), celular: o microfone do teclado. Depois é só dizer \"enviar\" ou apertar Enter.";
-  chip("st-voz", synth ? "ok" : "warn");
+  chip("st-voz", synth ? "ok" : "off");
+  if (!synth) notice("Este navegador não tem voz. No iPhone, abra o link no Safari.");
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const IOS_TIP = "No iPhone, fale pelo teclado: toque no 🎤 do teclado (embaixo, à direita), fale o pedido e termine dizendo \"enviar\". Ele envia sozinho.";
   function dictationMode() {
@@ -596,7 +615,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   let speechUnlocked = false;
   addEventListener("pointerdown", () => {
     if (speechUnlocked || !synth) return; speechUnlocked = true;
-    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); } catch {}
+    try { const u = new SpeechSynthesisUtterance("."); u.volume = 0.01; u.lang = "pt-BR"; synth.speak(u); } catch {}
   }, { capture: true });
   const SAMPLE_MSG = {
     not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Maiko.",
