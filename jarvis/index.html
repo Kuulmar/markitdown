@@ -259,7 +259,7 @@ button { font: inherit; cursor: pointer; }
     el.innerHTML = `<div class="av">${a.name[0]}</div><div class="an">${a.name}<span>${a.role}</span></div><div class="skills">${a.skills.map(s => `<b>${s}</b>`).join("")}</div>`;
     const b = document.createElement("button");
     b.className = "btn"; b.type = "button"; b.textContent = id === "scout" ? "Briefing da manhã" : "Acionar";
-    b.addEventListener("click", () => { $("q").value = a.cmd; ask(); });
+    b.addEventListener("click", () => { $("q").value = a.cmd; sendWithAck(); });
     el.appendChild(b);
     agentsEl.appendChild(el);
   }
@@ -623,11 +623,27 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   let ctl = null, busy = false;
   const SEND_WORD = /[\s,.]*\b(enviar|envia|envie|pronto)[.!]?\s*$/i;
   // iOS só deixa falar depois de um toque: "destrava" a voz no primeiro toque
+  // O iOS só libera a fala a partir de um toque de verdade (click/touchend/tecla, não pointerdown).
+  // Uma fala curta dentro do toque destrava o sintetizador para as respostas que chegam depois.
   let speechUnlocked = false;
-  addEventListener("pointerdown", () => {
-    if (speechUnlocked || !synth) return; speechUnlocked = true;
-    try { const u = new SpeechSynthesisUtterance("."); u.volume = 0.01; u.lang = "pt-BR"; synth.speak(u); } catch {}
-  }, { capture: true });
+  function unlockSpeech(text) {
+    if (!synth || (speechUnlocked && !text)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text || ".");
+      const v = pickVoice(); u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch;
+      u.volume = text ? 1 : 0.01;
+      u.onstart = () => { speechUnlocked = true; };
+      synth.speak(u);
+    } catch {}
+  }
+  for (const ev of ["click", "touchend", "keydown"]) addEventListener(ev, () => unlockSpeech(), { capture: true });
+  // Ao enviar (toque ou Enter), o Maiko confirma em voz: isso mantém a voz liberada para a resposta
+  const ACKS = ["Certo.", "Deixa comigo.", "Um momento.", "Já vejo."];
+  function sendWithAck() {
+    const had = $("q").value.trim();
+    ask();
+    if (had && voiceOn && synth) unlockSpeech(ACKS[Math.floor(Math.random() * ACKS.length)]);
+  }
   const SAMPLE_MSG = {
     not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Maiko.",
     sampling_disabled: "O Claude não está disponível para esta conta.",
@@ -689,7 +705,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
   }
 
   $("stop").addEventListener("click", () => ctl && ctl.abort());
-  $("form").addEventListener("submit", (e) => { e.preventDefault(); ask(); });
+  $("form").addEventListener("submit", (e) => { e.preventDefault(); sendWithAck(); });
   const qEl = $("q");
   function autoGrow() { qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
   qEl.addEventListener("input", () => {
@@ -697,7 +713,7 @@ ${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenh
     // Ditado: terminar a frase com "enviar" (ou "pronto") envia sozinho
     if (SEND_WORD.test(qEl.value) && qEl.value.replace(SEND_WORD, "").trim()) { clearTimeout(qEl._send); qEl._send = setTimeout(() => { if (SEND_WORD.test(qEl.value)) ask(); }, 900); }
   });
-  qEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
+  qEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendWithAck(); } });
 
   // ---------- Inicialização ----------
   log("maiko", "session boot");
