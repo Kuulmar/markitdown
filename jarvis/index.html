@@ -90,6 +90,9 @@ button { font: inherit; cursor: pointer; }
 .answer { min-height: 72px; font-size: 16px; line-height: 1.6; text-align: center; max-width: 62ch; margin: 0 auto; color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer .who { display: block; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .replay { align-self: center; }
+.docbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.docbar label { cursor: pointer; }
+.docplay { background: var(--cyan); color: var(--bg); font-weight: 600; }
 .replay.call { background: var(--cyan); color: var(--bg); font-size: 15px; padding: 12px 22px; font-weight: 600; animation: callpulse 1.4s ease-in-out infinite; }
 @keyframes callpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(95,212,244,0.55); } 50% { box-shadow: 0 0 0 10px rgba(95,212,244,0); } }
 @media (prefers-reduced-motion: reduce) { .replay.call { animation: none; } }
@@ -189,6 +192,13 @@ button { font: inherit; cursor: pointer; }
             <span class="hint">Enviar: <kbd>Enter</kbd> ou termine falando "enviar"</span>
           </div>
           <div class="notice" id="notice" hidden></div>
+          <div class="docbar">
+            <label class="btn" for="doc-in">📄 Ler documento</label>
+            <input type="file" id="doc-in" accept=".md,.txt,.markdown,text/plain,text/markdown" hidden>
+            <span class="hint" id="doc-name">Escolha um arquivo .md ou .txt e o Maiko lê em voz alta.</span>
+            <button type="button" class="btn docplay" id="doc-play" hidden>▶ Ler em voz alta</button>
+            <button type="button" class="btn" id="doc-stop" hidden>■ Parar leitura</button>
+          </div>
         </div>
       </div>
     </section>
@@ -395,6 +405,46 @@ button { font: inherit; cursor: pointer; }
   vPitch.addEventListener("input", () => { vs.pitch = Number(vPitch.value); saveVoice(); });
   $("v-test").addEventListener("click", () => speak("Olá, eu sou o Maiko. É assim que vou falar com você.", true));
   $("replay").addEventListener("click", () => speak(lastSpoken, true));
+
+  // ---------- Ler documento em voz alta ----------
+  // Transforma Markdown em texto bom de ouvir: sem símbolos, com pausas nos títulos e itens.
+  function docToSpeech(md) {
+    return md
+      .replace(/```[\s\S]*?```/g, " ")
+      .split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+        let t = l.replace(/^#{1,6}\s*/, "").replace(/^[-*+]\s+/, "").replace(/^\d+[.)]\s+/, "");
+        t = t.replace(/\*\*|__|`/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+          .replace(/\s*\|\s*/g, ", ").replace(/\s*→\s*/g, ", então ").replace(/~\s*/g, "cerca de ")
+          .replace(/(\d)\s*[–—-]\s*(\d)/g, "$1 a $2").replace(/\s*≈\s*/g, " aproximadamente ").replace(/\b1\/4\b/g, "um quarto").replace(/\b1\/2\b/g, "metade")
+          .replace(/\/(dia|h|hora|kg)\b/g, " por $1").replace(/([A-Za-zÀ-ú])\/([A-Za-zÀ-ú])/g, "$1 ou $2")
+          .replace(/\s<\s/g, " menor que ").replace(/\s>\s/g, " maior que ").replace(/\s*[–—]\s*/g, ", ")
+          .replace(/(\d),(\d)/g, "$1 vírgula $2").replace(/\s+\+\s+/g, " mais ").replace(/\bmL\b/g, "mililitros")
+          .replace(/\bkg\b/g, "quilos").replace(/\bkcal\b/g, "quilocalorias").replace(/\bSC\b/g, "subcutâneo");
+        return /[.!?:]$/.test(t) ? t : t + ".";
+      }).join("\n");
+  }
+  let docText = "";
+  $("doc-in").addEventListener("change", () => {
+    const f = $("doc-in").files && $("doc-in").files[0];
+    if (!f) return;
+    if (f.size > 500000) { notice("Arquivo grande demais para ler em voz alta (máximo 500 KB)."); return; }
+    const r = new FileReader();
+    r.onload = () => {
+      docText = docToSpeech(String(r.result || ""));
+      $("doc-name").textContent = f.name;
+      $("doc-play").hidden = !docText; $("doc-stop").hidden = true;
+      showAnswer("Maiko", "Documento carregado: " + f.name + ". Toque em \"Ler em voz alta\".");
+      log("maiko", "read " + f.name, "ok");
+    };
+    r.onerror = () => notice("Não consegui abrir esse arquivo. Tente um .md ou .txt.");
+    r.readAsText(f);
+  });
+  $("doc-play").addEventListener("click", () => {
+    if (!synth) { notice("Este navegador não tem voz. No iPhone, abra o link no Safari."); return; }
+    $("doc-stop").hidden = false;
+    speak(docText, "doc");
+  });
+  $("doc-stop").addEventListener("click", () => { stopSpeaking(); $("doc-stop").hidden = true; });
   if (!synth) { chip("st-voz", "off"); }
   if (synth) { renderVoices(); synth.addEventListener ? synth.addEventListener("voiceschanged", renderVoices) : (synth.onvoiceschanged = renderVoices); } else renderVoices();
   function stopSpeaking() { try { synth && synth.cancel(); } catch {} if (mode === "speaking") setMode("idle"); }
@@ -406,7 +456,7 @@ button { font: inherit; cursor: pointer; }
     const go = () => {
       try {
         // O iOS divide falas longas mal; manda em frases curtas
-        const parts = text.slice(0, 1500).match(/[^.!?\n]+[.!?]*/g) || [text];
+        const parts = text.slice(0, force === "doc" ? 20000 : 1500).match(/[^.!?\n]+[.!?]*/g) || [text];
         const v = pickVoice();
         let started = false;
         const rb = $("replay");
