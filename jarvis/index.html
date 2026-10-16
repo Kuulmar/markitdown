@@ -1,0 +1,793 @@
+<title>Maiko Pessoal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: HUD de três colunas — agentes | orbe + comando | diagnóstico. Tema único, escuro, como um painel de instrumentos. */
+:root {
+  color-scheme: dark;
+  --bg: #050b14;
+  --panel: #08131f;
+  --line: #12324a;
+  --line-soft: #0c2234;
+  --fg: #d6ecf7;
+  --muted: #6f93a8;
+  --cyan: #5fd4f4;
+  --cyan-dim: #2a7d99;
+  --amber: #f2b45c;
+  --red: #ef6f6f;
+  --green: #6fdba0;
+  --f-display: "Chakra Petch", "Rajdhani", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+html, body { min-height: 100%; }
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(95,212,244,0.07), transparent 70%),
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.wrap { padding-inline: 16px; padding-block: 14px 24px; max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Barra superior */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.brand { font-family: var(--f-display); font-weight: 700; letter-spacing: 0.32em; font-size: 18px; color: var(--cyan); }
+.brand small { display: block; font-family: var(--f-mono); font-weight: 400; letter-spacing: 0.08em; font-size: 11px; color: var(--muted); }
+.status { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--line); padding: 3px 8px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.chip[data-s="ok"] i { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.chip[data-s="warn"] i { background: var(--amber); }
+.chip[data-s="off"] i { background: var(--red); }
+.clock { font-family: var(--f-mono); font-size: 22px; color: var(--cyan); font-variant-numeric: tabular-nums; text-align: right; }
+.clock small { display: block; font-size: 11px; color: var(--muted); }
+
+/* Grade principal */
+.grid { display: grid; grid-template-columns: 270px minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+@media (max-width: 1080px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .center { grid-column: 1 / -1; order: -1; } }
+@media (max-width: 680px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); position: relative; min-width: 0; }
+.panel::before, .panel::after { content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--cyan-dim); border-style: solid; }
+.panel::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.panel::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.ph { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--line-soft); display: flex; justify-content: space-between; gap: 8px; }
+.pb { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* Agentes */
+.agent { display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 4px 10px; padding: 8px; border: 1px solid transparent; }
+.agent[data-active="true"] { border-color: var(--cyan-dim); background: rgba(95,212,244,0.06); }
+.av { grid-row: span 2; width: 30px; height: 30px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; color: var(--bg); background: var(--cyan); }
+.agent[data-id="scout"] .av { background: #8fb8ff; }
+.agent[data-id="operator"] .av { background: var(--amber); }
+.agent[data-id="mark"] .av { background: #b49cff; }
+.agent[data-id="advisor"] .av { background: var(--green); }
+.an { font-family: var(--f-display); font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.an span { font-family: var(--f-mono); font-weight: 400; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.skills b { font-weight: 400; font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); padding: 0 5px; }
+.agent button { grid-column: 2; justify-self: start; }
+
+button { font: inherit; cursor: pointer; }
+.btn { font-family: var(--f-mono); font-size: 11.5px; color: var(--cyan); background: transparent; border: 1px solid var(--cyan-dim); padding: 4px 10px; letter-spacing: 0.04em; }
+.btn:hover { background: rgba(95,212,244,0.1); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* Centro */
+.center .pb { align-items: stretch; gap: 12px; }
+.orbwrap { position: relative; width: 100%; max-width: 440px; aspect-ratio: 1; margin: 0 auto; }
+#orb { width: 100%; height: 100%; display: block; }
+.state { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--cyan); }
+.answer { min-height: 72px; font-size: 16px; line-height: 1.6; text-align: center; max-width: 62ch; margin: 0 auto; color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
+.answer .who { display: block; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.replay { align-self: center; }
+.docbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.docbar label { cursor: pointer; }
+.docplay { background: var(--cyan); color: var(--bg); font-weight: 600; }
+.replay.call { background: var(--cyan); color: var(--bg); font-size: 15px; padding: 12px 22px; font-weight: 600; animation: callpulse 1.4s ease-in-out infinite; }
+@keyframes callpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(95,212,244,0.55); } 50% { box-shadow: 0 0 0 10px rgba(95,212,244,0); } }
+@media (prefers-reduced-motion: reduce) { .replay.call { animation: none; } }
+.cmd { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.mic { width: 46px; border: 1px solid var(--cyan-dim); background: transparent; color: var(--cyan); display: grid; place-items: center; }
+.mic[data-on="true"] { background: var(--cyan); color: var(--bg); box-shadow: 0 0 18px rgba(95,212,244,0.5); }
+.mic svg { width: 20px; height: 20px; }
+#q { width: 100%; min-width: 0; background: #030810; color: var(--fg); border: 1px solid var(--line); padding: 11px 12px; font: 15px var(--f-body); resize: none; }
+#q::placeholder { color: var(--muted); }
+.send { background: var(--cyan); color: var(--bg); border: 0; padding: 0 16px; font-family: var(--f-display); font-weight: 700; letter-spacing: 0.12em; }
+.send:disabled { opacity: 0.5; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.tg { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 3px 8px; }
+.tg[aria-pressed="true"] { color: var(--cyan); border-color: var(--cyan-dim); }
+.hint { font-size: 12px; color: var(--muted); }
+.hint kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); padding: 0 4px; color: var(--fg); }
+.notice { font-size: 12.5px; color: var(--amber); border-left: 2px solid var(--amber); padding-left: 8px; }
+
+/* Áudio */
+#wave { width: 100%; height: 42px; display: block; }
+
+/* Log */
+.log { font-family: var(--f-mono); font-size: 11.5px; line-height: 1.7; max-height: 280px; overflow: auto; display: flex; flex-direction: column; }
+.log div { display: grid; grid-template-columns: 62px 72px minmax(0,1fr); gap: 6px; }
+.log .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .a { color: var(--amber); }
+.log .m { color: var(--fg); overflow-wrap: anywhere; }
+.log .m.ok::after { content: " ✓"; color: var(--green); }
+.log .m.err { color: var(--red); }
+
+/* Tarefas e memória */
+.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.tasks li { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; align-items: start; font-size: 13px; }
+.tasks input { accent-color: var(--cyan); margin-top: 4px; }
+.tasks li[data-done="true"] span { color: var(--muted); text-decoration: line-through; }
+.tasks .x { background: none; border: 0; color: var(--muted); font-size: 14px; padding: 0 4px; }
+.empty { color: var(--muted); font-size: 12.5px; }
+.addrow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; }
+.addrow input, #mem { background: #030810; color: var(--fg); border: 1px solid var(--line); padding: 6px 8px; font: 13px var(--f-body); min-width: 0; }
+#mem { width: 100%; min-height: 120px; resize: vertical; font-size: 12.5px; line-height: 1.5; box-sizing: border-box; }
+.saved { font-family: var(--f-mono); font-size: 10.5px; color: var(--green); }
+
+.fl { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+#v-sel { width: 100%; min-width: 0; background: #030810; color: var(--fg); border: 1px solid var(--line); padding: 6px 8px; font: 13px var(--f-body); }
+.ck { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.ck input, .sl input { accent-color: var(--cyan); }
+.sl { display: grid; grid-template-columns: 78px minmax(0,1fr) 38px; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.sl output { font-family: var(--f-mono); font-size: 11.5px; color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">M.A.I.K.O<small>seu assistente pessoal · comando por voz</small></div>
+    <div class="status" aria-label="Conexões">
+      <span class="chip" id="st-claude" data-s="warn"><i></i>Claude</span>
+      <span class="chip" id="st-gmail" data-s="warn"><i></i>Gmail</span>
+      <span class="chip" id="st-cal" data-s="warn"><i></i>Agenda</span>
+      <span class="chip" id="st-voz" data-s="warn"><i></i>Voz</span>
+    </div>
+    <div class="clock" id="clock">--:--:--<small id="date">—</small></div>
+  </header>
+
+  <main class="grid">
+    <!-- Agentes -->
+    <section class="col">
+      <div class="panel">
+        <div class="ph"><span>Seus agentes</span><span>5 online</span></div>
+        <div class="pb" id="agents"></div>
+      </div>
+    </section>
+
+    <!-- Centro -->
+    <section class="col center">
+      <div class="panel">
+        <div class="ph"><span>Núcleo</span><span id="tier-label">modo rápido</span></div>
+        <div class="pb">
+          <div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas><div class="state" id="state">Em espera</div></div>
+          <button type="button" class="btn replay" id="replay" hidden>🔊 Ouvir resposta</button>
+          <div class="answer" id="answer" aria-live="polite"><span class="who">Maiko</span>Bom dia. Fale ou digite o que precisa: eu escolho o agente certo e faço por você.</div>
+          <form class="cmd" id="form">
+            <button type="button" class="mic" id="mic" aria-label="Falar com o Maiko" title="Falar (ou segure a barra de espaço fora da caixa de texto)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+            </button>
+            <textarea id="q" rows="1" placeholder="Ex.: Maiko, qual é minha agenda de hoje?" aria-label="Comando"></textarea>
+            <button class="send" id="send" type="submit">ENVIAR</button>
+          </form>
+          <div class="row">
+            <div class="toggles">
+              <button type="button" class="tg" id="tg-voice" aria-pressed="true">Maiko fala as respostas</button>
+              <button type="button" class="tg" id="tg-tier" aria-pressed="false">Modo profundo</button>
+              <button type="button" class="btn" id="stop" hidden>Parar</button>
+              <button type="button" class="tg" id="clear">Nova conversa</button>
+            </div>
+            <span class="hint">Enviar: <kbd>Enter</kbd> ou termine falando "enviar"</span>
+          </div>
+          <div class="notice" id="notice" hidden></div>
+          <div class="docbar">
+            <label class="btn" for="doc-in">📄 Ler documento</label>
+            <input type="file" id="doc-in" accept=".md,.txt,.markdown,text/plain,text/markdown" hidden>
+            <span class="hint" id="doc-name">Escolha um arquivo .md ou .txt e o Maiko lê em voz alta.</span>
+            <button type="button" class="btn docplay" id="doc-play" hidden>▶ Ler em voz alta</button>
+            <button type="button" class="btn" id="doc-stop" hidden>■ Parar leitura</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Diagnóstico -->
+    <section class="col">
+      <div class="panel">
+        <div class="ph"><span>Áudio I/O</span><span id="audio-st">ocioso</span></div>
+        <div class="pb"><canvas id="wave" aria-hidden="true"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span>Diagnóstico</span><span>reports to Maiko</span></div>
+        <div class="pb"><div class="log" id="log" role="log"></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span>Voz do Maiko</span><span id="voice-count">—</span></div>
+        <div class="pb">
+          <label class="fl" for="v-sel">Voz</label>
+          <select id="v-sel"></select>
+          <label class="ck"><input type="checkbox" id="v-all"> Mostrar vozes de outros idiomas</label>
+          <div class="sl"><label for="v-rate">Velocidade</label><input type="range" id="v-rate" min="0.6" max="1.6" step="0.05"><output id="v-rate-o"></output></div>
+          <div class="sl"><label for="v-pitch">Tom</label><input type="range" id="v-pitch" min="0.5" max="1.6" step="0.05"><output id="v-pitch-o"></output></div>
+          <button type="button" class="btn" id="v-test">Testar voz</button>
+          <span class="hint">As vozes vêm do seu aparelho. No Edge aparecem vozes naturais (ex.: Francisca, Antonio, Thalita); no Mac, Luciana e Felipe.</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span>Tarefas</span><span id="task-count">0 abertas</span></div>
+        <div class="pb">
+          <ul class="tasks" id="tasks"></ul>
+          <form class="addrow" id="task-form"><input id="task-in" placeholder="Nova tarefa" aria-label="Nova tarefa"><button class="btn" type="submit">Adicionar</button></form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span>Memória · como eu trabalho</span><span class="saved" id="mem-saved" hidden>salvo</span></div>
+        <div class="pb">
+          <textarea id="mem" aria-label="Memória do Maiko"></textarea>
+          <span class="hint">O Maiko lê isto antes de cada pedido. Diga "Maiko, lembre que…" para ele anotar aqui sozinho.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Armazenamento local (só neste navegador) ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("jarvis:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("jarvis:" + k, JSON.stringify(v)); } catch {} },
+  };
+
+  // ---------- Agentes ----------
+  const AGENTS = {
+    maiko:   { name: "Maiko",   role: "principal",   skills: ["Entender", "Delegar", "Responder"], cmd: "Maiko, o que você consegue fazer por mim?" },
+    scout:    { name: "Scout",    role: "inteligência", skills: ["Agenda", "E-mails", "Briefing"],   cmd: "Scout, me dê o briefing da manhã: agenda de hoje e e-mails importantes." },
+    operator: { name: "Operator", role: "operações",    skills: ["Responder e-mails", "Rascunhos", "Suporte"], cmd: "Operator, quais e-mails não lidos precisam de resposta? Prepare rascunhos." },
+    mark:     { name: "Mark",     role: "dev",          skills: ["Código", "Revisão", "Depuração"],  cmd: "Mark, preciso de ajuda com um código." },
+    advisor:  { name: "Advisor",  role: "prioridades",  skills: ["Ranquear", "Focar", "Decidir"],    cmd: "Advisor, no que devo focar hoje?" },
+  };
+  const agentsEl = $("agents");
+  for (const [id, a] of Object.entries(AGENTS)) {
+    const el = document.createElement("div");
+    el.className = "agent"; el.dataset.id = id; el.dataset.active = String(id === "maiko");
+    el.innerHTML = `<div class="av">${a.name[0]}</div><div class="an">${a.name}<span>${a.role}</span></div><div class="skills">${a.skills.map(s => `<b>${s}</b>`).join("")}</div>`;
+    const b = document.createElement("button");
+    b.className = "btn"; b.type = "button"; b.textContent = id === "scout" ? "Briefing da manhã" : "Acionar";
+    b.addEventListener("click", () => { $("q").value = a.cmd; sendWithAck(); });
+    el.appendChild(b);
+    agentsEl.appendChild(el);
+  }
+  function setActive(id) { for (const el of agentsEl.children) el.dataset.active = String(el.dataset.id === id); }
+
+  // ---------- Relógio ----------
+  const fmtTime = () => new Date().toLocaleTimeString("pt-BR", { hour12: false });
+  function tick() {
+    $("clock").firstChild.nodeValue = fmtTime();
+    $("date").textContent = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---------- Log ----------
+  function log(agent, msg, kind) {
+    const row = document.createElement("div");
+    row.innerHTML = `<span class="t"></span><span class="a"></span><span class="m"></span>`;
+    row.children[0].textContent = fmtTime();
+    row.children[1].textContent = agent.toLowerCase();
+    row.children[2].textContent = msg;
+    if (kind) row.children[2].classList.add(kind);
+    const el = $("log"); el.appendChild(row);
+    while (el.children.length > 60) el.firstChild.remove();
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ---------- Estado visual ----------
+  let mode = "idle"; // idle | listening | thinking | speaking
+  const STATE_TXT = { idle: "Em espera", listening: "Ouvindo…", thinking: "Processando…", speaking: "Falando" };
+  function setMode(m) { mode = m; $("state").textContent = STATE_TXT[m]; $("audio-st").textContent = m === "listening" ? "entrada" : m === "speaking" ? "saída" : m === "thinking" ? "processando" : "ocioso"; }
+  const chip = (id, s) => { $(id).dataset.s = s; };
+  function notice(msg) { const n = $("notice"); n.textContent = msg || ""; n.hidden = !msg; }
+
+  // ---------- Orbe ----------
+  const orb = $("orb"), octx = orb.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const N = 520, pts = [];
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = Math.PI * (3 - Math.sqrt(5)) * i;
+    pts.push([Math.cos(th) * r, y, Math.sin(th) * r]);
+  }
+  let rot = 0, pulse = 0;
+  function sizeCanvas(c) {
+    const dpr = Math.min(devicePixelRatio || 1, 2), r = c.getBoundingClientRect();
+    if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
+    return dpr;
+  }
+  function drawOrb(t) {
+    const dpr = sizeCanvas(orb), w = orb.width, h = orb.height, cx = w / 2, cy = h / 2;
+    const base = Math.min(w, h) * 0.27;
+    const speed = { idle: 0.003, listening: 0.008, thinking: 0.02, speaking: 0.01 }[mode];
+    rot += reduce ? 0 : speed;
+    const target = mode === "speaking" ? 0.08 + 0.06 * Math.sin(t / 90) : mode === "listening" ? 0.05 + 0.03 * Math.sin(t / 140) : mode === "thinking" ? 0.03 : 0;
+    pulse += (target - pulse) * 0.15;
+    const R = base * (1 + pulse);
+    octx.clearRect(0, 0, w, h);
+    // anéis
+    octx.lineWidth = 1 * dpr;
+    for (const [k, a] of [[1.45, 0.35], [1.62, 0.18], [1.9, 0.1]]) {
+      octx.strokeStyle = `rgba(95,212,244,${a})`;
+      octx.beginPath(); octx.arc(cx, cy, base * k, 0, Math.PI * 2); octx.stroke();
+    }
+    // marcas do anel externo
+    octx.strokeStyle = "rgba(95,212,244,0.45)";
+    for (let i = 0; i < 72; i++) {
+      const a = i / 72 * Math.PI * 2 + rot * 0.3, r1 = base * 1.62, r2 = r1 + (i % 6 === 0 ? 10 : 4) * dpr;
+      octx.beginPath(); octx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); octx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); octx.stroke();
+    }
+    // arco de atividade
+    if (mode !== "idle") {
+      octx.strokeStyle = mode === "thinking" ? "rgba(242,180,92,0.9)" : "rgba(95,212,244,0.9)";
+      octx.lineWidth = 2 * dpr;
+      octx.beginPath(); octx.arc(cx, cy, base * 1.45, rot * 4, rot * 4 + 1.1); octx.stroke();
+    }
+    // esfera
+    const cr = Math.cos(rot), sr = Math.sin(rot), tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
+    for (const [x, y, z] of pts) {
+      const x1 = x * cr - z * sr, z1 = x * sr + z * cr;
+      const y2 = y * ct - z1 * st, z2 = y * st + z1 * ct;
+      const depth = (z2 + 1) / 2;
+      octx.fillStyle = `rgba(150,230,250,${0.15 + depth * 0.8})`;
+      const s = (0.7 + depth * 1.3) * dpr;
+      octx.fillRect(cx + x1 * R - s / 2, cy + y2 * R - s / 2, s, s);
+    }
+  }
+
+  // ---------- Onda de áudio ----------
+  const wave = $("wave"), wctx = wave.getContext("2d");
+  function drawWave(t) {
+    const dpr = sizeCanvas(wave), w = wave.width, h = wave.height, bars = 64, bw = w / bars;
+    wctx.clearRect(0, 0, w, h);
+    const amp = mode === "speaking" ? 0.9 : mode === "listening" ? 0.6 : mode === "thinking" ? 0.2 : 0.06;
+    wctx.fillStyle = "rgba(95,212,244,0.85)";
+    for (let i = 0; i < bars; i++) {
+      const n = Math.abs(Math.sin(i * 0.7 + t / 120) * Math.sin(i * 0.23 + t / 300));
+      const bh = Math.max(2 * dpr, n * amp * h * (0.4 + 0.6 * Math.sin(i / bars * Math.PI)));
+      wctx.fillRect(i * bw + 1, (h - bh) / 2, Math.max(1, bw - 2 * dpr), bh);
+    }
+  }
+  function frame(t) { drawOrb(t); drawWave(t); requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+
+  // ---------- Voz: saída ----------
+  let voiceOn = store.get("voice", true);
+  const tgVoice = $("tg-voice");
+  tgVoice.setAttribute("aria-pressed", String(voiceOn));
+  tgVoice.addEventListener("click", () => { voiceOn = !voiceOn; store.set("voice", voiceOn); tgVoice.setAttribute("aria-pressed", String(voiceOn)); if (!voiceOn) stopSpeaking(); });
+  const synth = "speechSynthesis" in window ? window.speechSynthesis : null;
+  const vs = Object.assign({ uri: "", rate: 1.05, pitch: 1, all: false }, store.get("voiceCfg", {}));
+  const vSel = $("v-sel"), vAll = $("v-all"), vRate = $("v-rate"), vPitch = $("v-pitch");
+  const allVoices = () => (synth ? synth.getVoices() : []);
+  function pickVoice() {
+    const list = allVoices();
+    return list.find(v => v.voiceURI === vs.uri) || list.find(v => /pt-BR/i.test(v.lang)) || list.find(v => /^pt/i.test(v.lang)) || null;
+  }
+  function renderVoices() {
+    const list = allVoices();
+    const pt = list.filter(v => /^pt/i.test(v.lang));
+    const shown = (vs.all || !pt.length) ? list : pt;
+    const cur = pickVoice();
+    vSel.textContent = "";
+    if (!shown.length) { const o = document.createElement("option"); o.textContent = synth ? "Nenhuma voz encontrada neste aparelho" : "Este navegador não fala"; vSel.appendChild(o); vSel.disabled = true; }
+    else vSel.disabled = false;
+    const sorted = [...shown].sort((a, b) => (/pt-BR/i.test(b.lang) - /pt-BR/i.test(a.lang)) || (/natural|online|neural|premium|enhanced/i.test(b.name) - /natural|online|neural|premium|enhanced/i.test(a.name)) || a.name.localeCompare(b.name));
+    for (const v of sorted) { const o = document.createElement("option"); o.value = v.voiceURI; o.textContent = `${v.name} · ${v.lang}`; if (cur && v.voiceURI === cur.voiceURI) o.selected = true; vSel.appendChild(o); }
+    $("voice-count").textContent = list.length ? `${pt.length} em português` : "—";
+  }
+  function saveVoice() { store.set("voiceCfg", vs); $("v-rate-o").textContent = vs.rate.toFixed(2); $("v-pitch-o").textContent = vs.pitch.toFixed(2); }
+  vAll.checked = vs.all; vRate.value = vs.rate; vPitch.value = vs.pitch; saveVoice();
+  vSel.addEventListener("change", () => { vs.uri = vSel.value; saveVoice(); });
+  vAll.addEventListener("change", () => { vs.all = vAll.checked; saveVoice(); renderVoices(); });
+  vRate.addEventListener("input", () => { vs.rate = Number(vRate.value); saveVoice(); });
+  vPitch.addEventListener("input", () => { vs.pitch = Number(vPitch.value); saveVoice(); });
+  $("v-test").addEventListener("click", () => speak("Olá, eu sou o Maiko. É assim que vou falar com você.", true));
+  $("replay").addEventListener("click", () => speak(lastSpoken, true));
+
+  // ---------- Ler documento em voz alta ----------
+  // Transforma Markdown em texto bom de ouvir: sem símbolos, com pausas nos títulos e itens.
+  function docToSpeech(md) {
+    return md
+      .replace(/```[\s\S]*?```/g, " ")
+      .split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+        let t = l.replace(/^#{1,6}\s*/, "").replace(/^[-*+]\s+/, "").replace(/^\d+[.)]\s+/, "");
+        t = t.replace(/\*\*|__|`/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+          .replace(/\s*\|\s*/g, ", ").replace(/\s*→\s*/g, ", então ").replace(/~\s*/g, "cerca de ")
+          .replace(/(\d)\s*[–—-]\s*(\d)/g, "$1 a $2").replace(/\s*≈\s*/g, " aproximadamente ").replace(/\b1\/4\b/g, "um quarto").replace(/\b1\/2\b/g, "metade")
+          .replace(/\/(dia|h|hora|kg)\b/g, " por $1").replace(/([A-Za-zÀ-ú])\/([A-Za-zÀ-ú])/g, "$1 ou $2")
+          .replace(/\s<\s/g, " menor que ").replace(/\s>\s/g, " maior que ").replace(/\s*[–—]\s*/g, ", ")
+          .replace(/(\d),(\d)/g, "$1 vírgula $2").replace(/\s+\+\s+/g, " mais ").replace(/\bmL\b/g, "mililitros")
+          .replace(/\bkg\b/g, "quilos").replace(/\bkcal\b/g, "quilocalorias").replace(/\bSC\b/g, "subcutâneo");
+        return /[.!?:]$/.test(t) ? t : t + ".";
+      }).join("\n");
+  }
+  let docText = "";
+  $("doc-in").addEventListener("change", () => {
+    const f = $("doc-in").files && $("doc-in").files[0];
+    if (!f) return;
+    if (f.size > 500000) { notice("Arquivo grande demais para ler em voz alta (máximo 500 KB)."); return; }
+    const r = new FileReader();
+    r.onload = () => {
+      docText = docToSpeech(String(r.result || ""));
+      $("doc-name").textContent = f.name;
+      $("doc-play").hidden = !docText; $("doc-stop").hidden = true;
+      showAnswer("Maiko", "Documento carregado: " + f.name + ". Toque em \"Ler em voz alta\".");
+      log("maiko", "read " + f.name, "ok");
+    };
+    r.onerror = () => notice("Não consegui abrir esse arquivo. Tente um .md ou .txt.");
+    r.readAsText(f);
+  });
+  $("doc-play").addEventListener("click", () => {
+    if (!synth) { notice("Este navegador não tem voz. No iPhone, abra o link no Safari."); return; }
+    $("doc-stop").hidden = false;
+    speak(docText, "doc");
+  });
+  $("doc-stop").addEventListener("click", () => { stopSpeaking(); $("doc-stop").hidden = true; });
+  if (!synth) { chip("st-voz", "off"); }
+  if (synth) { renderVoices(); synth.addEventListener ? synth.addEventListener("voiceschanged", renderVoices) : (synth.onvoiceschanged = renderVoices); } else renderVoices();
+  function stopSpeaking() { try { synth && synth.cancel(); } catch {} if (mode === "speaking") setMode("idle"); }
+  let lastSpoken = "";
+  function speak(text, force) {
+    if (text) lastSpoken = text;
+    $("replay").hidden = !synth || !lastSpoken;
+    if ((!voiceOn && !force) || !synth || !text) { setMode("idle"); return; }
+    const go = () => {
+      try {
+        // O iOS divide falas longas mal; manda em frases curtas
+        const parts = text.slice(0, force === "doc" ? 20000 : 1500).match(/[^.!?\n]+[.!?]*/g) || [text];
+        const v = pickVoice();
+        let started = false;
+        const rb = $("replay");
+        parts.forEach((p, i) => {
+          if (!p.trim()) return;
+          const u = new SpeechSynthesisUtterance(p.trim());
+          u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch; u.volume = 1;
+          u.onstart = () => { started = true; rb.classList.remove("call"); rb.textContent = "🔊 Ouvir resposta"; setMode("speaking"); };
+          u.onerror = (e) => { if (e.error && e.error !== "interrupted" && e.error !== "canceled") { log("maiko", "voz: " + e.error, "err"); if (e.error === "not-allowed") notice("O iPhone bloqueou a fala automática. Toque em \"Ouvir resposta\"."); } if (mode === "speaking") setMode("idle"); };
+          if (i === parts.length - 1) u.onend = () => { if (mode === "speaking") setMode("idle"); };
+          synth.speak(u);
+        });
+        try { synth.resume(); } catch {}
+        setTimeout(() => {
+          if (!started && !synth.speaking) {
+            setMode("idle");
+            // iOS bloqueou a fala automática: destaca o botão para ouvir com um toque
+            if (!force) { rb.classList.add("call"); rb.textContent = "🔊 Toque para ouvir o Maiko"; }
+          }
+        }, 1500);
+      } catch { setMode("idle"); }
+    };
+    // No iOS, cancel() seguido de speak() na mesma hora descarta a fala
+    if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(go, 150); } else go();
+  }
+
+  // ---------- Voz: entrada ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const mic = $("mic");
+  let rec = null, listening = false;
+  const DICTATION_TIP = "O microfone do navegador não está liberado aqui. Use o ditado do sistema na caixa de texto: Windows ⊞+H, Mac Fn Fn (ou Wispr Flow), celular: o microfone do teclado. Depois é só dizer \"enviar\" ou apertar Enter.";
+  chip("st-voz", synth ? "ok" : "off");
+  if (!synth) notice("Este navegador não tem voz. No iPhone, abra o link no Safari.");
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const IOS_TIP = "No iPhone, fale pelo teclado: toque no 🎤 do teclado (embaixo, à direita), fale o pedido e termine dizendo \"enviar\". Ele envia sozinho.";
+  function dictationMode() {
+    notice(isIOS ? IOS_TIP : DICTATION_TIP);
+    const q = $("q"); q.focus(); try { q.setSelectionRange(q.value.length, q.value.length); } catch {}
+  }
+  function startListening() {
+    if (!SR || isIOS) { dictationMode(); return; }
+    try {
+      rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false;
+      let finalText = "";
+      rec.onstart = () => { listening = true; mic.dataset.on = "true"; stopSpeaking(); setMode("listening"); notice(""); };
+      rec.onresult = (e) => {
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+        }
+        $("q").value = (finalText + interim).trim();
+      };
+      rec.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") { dictationMode(); chip("st-voz", "warn"); } };
+      rec.onend = () => { listening = false; mic.dataset.on = "false"; if (mode === "listening") setMode("idle"); if (finalText.trim()) ask(); };
+      rec.start();
+      setTimeout(() => { if (!listening) { try { rec.abort(); } catch {} dictationMode(); } }, 2000);
+    } catch { dictationMode(); }
+  }
+  mic.addEventListener("click", () => { if (listening && rec) rec.stop(); else startListening(); });
+  // Segurar espaço (fora da caixa de texto) = falar
+  addEventListener("keydown", (e) => { if (e.code === "Space" && !e.repeat && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement?.tagName || "") && !listening) { e.preventDefault(); startListening(); } });
+  addEventListener("keyup", (e) => { if (e.code === "Space" && listening && rec) rec.stop(); });
+
+  // ---------- Tarefas ----------
+  let tasks = store.get("tasks", null);
+  if (!Array.isArray(tasks)) tasks = [
+    { id: 1, text: "Exemplo: revisar propostas da semana", done: false },
+    { id: 2, text: "Exemplo: responder clientes pendentes", done: false },
+  ];
+  let nextId = tasks.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+  function renderTasks() {
+    const ul = $("tasks"); ul.textContent = "";
+    if (!tasks.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "Nenhuma tarefa. Diga \"Maiko, anota que…\"."; ul.appendChild(li); }
+    for (const t of tasks) {
+      const li = document.createElement("li"); li.dataset.done = String(t.done);
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = t.done; cb.id = "task-" + t.id; cb.setAttribute("aria-label", t.text);
+      cb.addEventListener("change", () => { t.done = cb.checked; saveTasks(); });
+      const sp = document.createElement("span"); sp.textContent = t.text;
+      const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Remover tarefa");
+      x.addEventListener("click", () => { tasks = tasks.filter(o => o !== t); saveTasks(); });
+      li.append(cb, sp, x); ul.appendChild(li);
+    }
+    $("task-count").textContent = tasks.filter(t => !t.done).length + " abertas";
+  }
+  function saveTasks() { store.set("tasks", tasks); renderTasks(); }
+  $("task-form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("task-in").value.trim(); if (!v) return; tasks.push({ id: nextId++, text: v, done: false }); $("task-in").value = ""; saveTasks(); });
+  renderTasks();
+
+  // ---------- Memória ----------
+  const DEFAULT_MEM = "Me chame pelo nome que eu disser aqui.\nResponda direto, em português, sem enrolação.\nAntes de qualquer ação que envie algo para alguém, me mostre e peça confirmação.\n(Edite este texto: diga como você quer que as coisas sejam feitas.)";
+  const memEl = $("mem");
+  memEl.value = store.get("memory", DEFAULT_MEM);
+  let memTimer;
+  function saveMem() { store.set("memory", memEl.value); const s = $("mem-saved"); s.hidden = false; clearTimeout(memTimer); memTimer = setTimeout(() => s.hidden = true, 1500); }
+  memEl.addEventListener("input", () => { clearTimeout(memEl._t); memEl._t = setTimeout(saveMem, 500); });
+
+  // ---------- Conversa ----------
+  let turns = store.get("turns", []);
+  if (!Array.isArray(turns)) turns = [];
+  $("clear").addEventListener("click", () => { turns = []; store.set("turns", turns); showAnswer("Maiko", "Conversa nova. Pode falar."); log("maiko", "contexto limpo", "ok"); });
+
+  let deep = store.get("deep", false);
+  const tgTier = $("tg-tier");
+  function renderTier() { tgTier.setAttribute("aria-pressed", String(deep)); $("tier-label").textContent = deep ? "modo profundo" : "modo rápido"; }
+  tgTier.addEventListener("click", () => { deep = !deep; store.set("deep", deep); renderTier(); });
+  renderTier();
+
+  function showAnswer(who, text) {
+    const a = $("answer"); a.textContent = "";
+    const w = document.createElement("span"); w.className = "who"; w.textContent = who; a.appendChild(w);
+    a.appendChild(document.createTextNode(text));
+  }
+
+  // ---------- Capacidades (Claude + conectores) ----------
+  let sample = null, mcp = null;
+  const conn = { gmail: false, cal: false };
+  const MCP_MSG = {
+    needs_reauth: (s) => `Reconecte ${s} em claude.ai → Configurações → Conectores.`,
+    server_not_connected: (s) => `Adicione ${s} em claude.ai → Configurações → Conectores.`,
+    selection_required: (s) => `Escolha qual conta do ${s} usar no aviso do Claude.`,
+    not_in_manifest: (s) => `O acesso ao ${s} foi recusado para esta página.`,
+    blocked_by_policy: (s) => `Sua organização bloqueia o ${s} aqui.`,
+    approval_required: (s) => `O ${s} precisa da sua aprovação para esta ação.`,
+    server_unavailable: (s) => `O ${s} não respondeu agora. Tente de novo em instantes.`,
+  };
+  function mcpError(server, e) {
+    const f = MCP_MSG[e && e.code];
+    return f ? f(server) : `${server}: ${(e && e.message) || "falha desconhecida"}`;
+  }
+  async function callMcp(agent, server, tool, input, signal) {
+    if (!mcp) throw new Error(`${server} não está disponível nesta visualização.`);
+    log(agent, `connect ${server.toLowerCase()} · ${tool}`);
+    try {
+      const r = await mcp.callTool(server, tool, input, { signal });
+      log(agent, `${tool} concluído`, "ok");
+      if (server === "Gmail") { conn.gmail = true; chip("st-gmail", "ok"); } else { conn.cal = true; chip("st-cal", "ok"); }
+      let p = r.payload !== undefined ? r.payload : r.content;
+      let s = typeof p === "string" ? p : JSON.stringify(p);
+      return s.length > 14000 ? s.slice(0, 14000) + " …[cortado]" : s;
+    } catch (e) {
+      const msg = mcpError(server, e);
+      log(agent, msg, "err");
+      if (["needs_reauth", "server_not_connected", "not_in_manifest", "blocked_by_policy"].includes(e && e.code)) chip(server === "Gmail" ? "st-gmail" : "st-cal", "off");
+      throw new Error(msg);
+    }
+  }
+
+  const localDate = (d) => { const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`; };
+
+  function buildTools() {
+    const tools = [
+      { name: "listar_tarefas", description: "Lista as tarefas do usuário (id, texto, feita).",
+        execute: () => { log("maiko", "read tarefas", "ok"); return tasks; } },
+      { name: "adicionar_tarefa", description: "Adiciona uma tarefa à lista do usuário. Retorna a tarefa criada.",
+        inputSchema: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
+        execute: (i) => { const t = { id: nextId++, text: String(i.texto || "").slice(0, 200), done: false }; if (!t.text) throw new Error("texto vazio"); tasks.push(t); saveTasks(); log("maiko", "write tarefa", "ok"); return t; } },
+      { name: "concluir_tarefa", description: "Marca uma tarefa como feita pelo id.",
+        inputSchema: { type: "object", properties: { id: { type: "number" } }, required: ["id"] },
+        execute: (i) => { const t = tasks.find(o => o.id === Number(i.id)); if (!t) throw new Error("tarefa não encontrada"); t.done = true; saveTasks(); log("maiko", "tarefa concluída", "ok"); return t; } },
+      { name: "lembrar", description: "Guarda permanentemente uma preferência ou regra do usuário sobre como ele quer que as coisas sejam feitas (memória do Maiko). Use quando ele disser 'lembre que', 'sempre faça', 'a partir de agora'.",
+        inputSchema: { type: "object", properties: { nota: { type: "string" } }, required: ["nota"] },
+        execute: (i) => { const n = String(i.nota || "").trim().slice(0, 400); if (!n) throw new Error("nota vazia"); memEl.value = (memEl.value.trim() + "\n- " + n).trim(); saveMem(); log("maiko", "write memória", "ok"); return "memória salva"; } },
+    ];
+    if (mcp) {
+      tools.push(
+        { name: "buscar_emails", description: "Busca conversas no Gmail do usuário com a sintaxe de busca do Gmail (ex.: 'is:unread in:inbox newer_than:2d', 'from:fulano'). Retorna assunto, remetente, data e trecho de até 15 conversas.",
+          inputSchema: { type: "object", properties: { consulta: { type: "string", description: "Consulta no formato de busca do Gmail" } }, required: ["consulta"] },
+          execute: (i, ctx) => callMcp("scout", "Gmail", "search_threads", { query: String(i.consulta || "in:inbox newer_than:2d"), pageSize: 15 }, ctx.signal) },
+        { name: "ver_agenda", description: "Lista eventos do Google Agenda do usuário entre duas datas/horas locais (formato AAAA-MM-DDTHH:MM:SS, sem fuso). Sem datas, retorna de agora até o fim de hoje.",
+          inputSchema: { type: "object", properties: { inicio: { type: "string" }, fim: { type: "string" } } },
+          execute: (i, ctx) => {
+            const now = new Date(), end = new Date(now); end.setHours(23, 59, 0, 0);
+            return callMcp("scout", "Google Calendar", "list_events", { startTime: String(i.inicio || localDate(now)), endTime: String(i.fim || localDate(end)), orderBy: "startTime", pageSize: 20 }, ctx.signal);
+          } },
+        { name: "criar_rascunho_email", description: "Cria um RASCUNHO no Gmail (não envia). Use para respostas que o usuário vai revisar. Corpo em texto simples, sem markdown.",
+          inputSchema: { type: "object", properties: { para: { type: "array", items: { type: "string" } }, assunto: { type: "string" }, corpo: { type: "string" } }, required: ["para", "assunto", "corpo"] },
+          execute: (i, ctx) => {
+            const to = (Array.isArray(i.para) ? i.para : [i.para]).map(String).filter(s => /@/.test(s));
+            if (!to.length) throw new Error("informe um e-mail válido em 'para'");
+            return callMcp("operator", "Gmail", "create_draft", { to, subject: String(i.assunto || ""), body: String(i.corpo || "") }, ctx.signal);
+          } },
+      );
+    }
+    return tools;
+  }
+
+  function rules() {
+    const now = new Date();
+    return `Você é o MAIKO, assistente pessoal do usuário, operando um painel com comando por voz.
+Data e hora local agora: ${now.toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })} (ISO local ${localDate(now)}).
+
+Sua equipe de agentes (você delega e fala em nome de quem fez o trabalho):
+- Maiko: agente principal; conversa geral, dúvidas, planejamento, escrita.
+- Scout: inteligência; agenda, e-mails, briefing da manhã, levantar informação.
+- Operator: operações; responder e-mails (criando rascunhos), suporte, publicar e organizar.
+- Mark: desenvolvimento; código, revisão, depuração, explicações técnicas.
+- Advisor: prioridades; cruza tarefas, agenda e e-mails e diz no que focar, ranqueado por impacto.
+
+Regras:
+1. A PRIMEIRA linha da resposta é exatamente "AGENTE: <Nome>" com o agente que tratou o pedido.
+2. Depois, responda em português do Brasil, em tom falado, porque a resposta é lida em voz alta: curto (até 5 frases), sem markdown, sem asteriscos, sem tabelas. Para código (Mark), pode usar um bloco curto.
+3. Use as ferramentas para dados reais. Nunca invente e-mails, eventos, números ou nomes. Se uma ferramenta falhar, diga o motivo e o que o usuário pode fazer.
+4. E-mail: você só cria rascunhos, nunca envia. Diga que o rascunho está no Gmail para revisão.
+5. Quando o usuário disser como quer que algo seja feito ("sempre", "a partir de agora", "lembre que"), use a ferramenta lembrar.
+6. Siga a memória abaixo; ela é a forma como o usuário quer que as coisas sejam feitas.
+${mcp ? "" : "7. Gmail e Agenda não estão disponíveis nesta visualização; avise se o pedido depender deles.\n"}
+MEMÓRIA DO USUÁRIO:
+${memEl.value.trim() || "(vazia)"}
+
+TAREFAS ABERTAS:
+${tasks.filter(t => !t.done).map(t => `#${t.id} ${t.text}`).join("\n") || "(nenhuma)"}`;
+  }
+
+  let ctl = null, busy = false;
+  const SEND_WORD = /[\s,.]*\b(enviar|envia|envie|pronto)[.!]?\s*$/i;
+  // iOS só deixa falar depois de um toque: "destrava" a voz no primeiro toque
+  // O iOS só libera a fala a partir de um toque de verdade (click/touchend/tecla, não pointerdown).
+  // Uma fala curta dentro do toque destrava o sintetizador para as respostas que chegam depois.
+  let speechUnlocked = false;
+  function unlockSpeech(text) {
+    if (!synth || (speechUnlocked && !text)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text || ".");
+      const v = pickVoice(); u.lang = v ? v.lang : "pt-BR"; if (v) u.voice = v; u.rate = vs.rate; u.pitch = vs.pitch;
+      u.volume = text ? 1 : 0.01;
+      u.onstart = () => { speechUnlocked = true; };
+      synth.speak(u);
+    } catch {}
+  }
+  for (const ev of ["click", "touchend", "keydown"]) addEventListener(ev, () => unlockSpeech(), { capture: true });
+  // Ao enviar (toque ou Enter), o Maiko confirma em voz: isso mantém a voz liberada para a resposta
+  const ACKS = ["Certo.", "Deixa comigo.", "Um momento.", "Já vejo."];
+  function sendWithAck() {
+    const had = $("q").value.trim();
+    ask();
+    if (had && voiceOn && synth) unlockSpeech(ACKS[Math.floor(Math.random() * ACKS.length)]);
+  }
+  const SAMPLE_MSG = {
+    not_granted: "O uso do Claude não foi permitido para esta página. Reabra e permita para conversar com o Maiko.",
+    sampling_disabled: "O Claude não está disponível para esta conta.",
+    rate_limited: "Muitos pedidos seguidos ou limite de uso atingido. Espere um pouco e tente de novo.",
+    session_expired: "Sua sessão expirou. Entre de novo no claude.ai.",
+    refused: "Não posso ajudar com esse pedido. Tente reformular.",
+    empty_completion: "Não veio resposta. Tente pedir de outro jeito.",
+    prompt_too_large: "A conversa ficou grande demais. Clique em Nova conversa.",
+    tools_unavailable: "Ferramentas indisponíveis nesta visualização.",
+  };
+
+  async function ask() {
+    const q = $("q").value.trim().replace(SEND_WORD, "").trim();
+    if (!q || busy) return;
+    if (!sample) { notice("O Claude ainda não está disponível nesta visualização. Abra a página no claude.ai."); return; }
+    busy = true; $("send").disabled = true; $("stop").hidden = false; notice("");
+    stopSpeaking();
+    $("q").value = ""; autoGrow();
+    log("voce", q.length > 70 ? q.slice(0, 70) + "…" : q);
+    log("maiko", "session maiko.run");
+    setActive("maiko"); setMode("thinking"); showAnswer("Maiko", "Processando…");
+    turns.push({ role: "user", content: q });
+    const recent = turns.slice(-12);
+    while (recent.length && recent[0].role !== "user") recent.shift();
+    const input = [{ role: "user", content: rules() }, ...recent];
+    ctl = new AbortController();
+    let agentId = "maiko";
+    const parse = (text) => {
+      const m = text.match(/^\s*AGENTE:\s*([A-Za-zÀ-ú]+)\s*\n?/i);
+      if (m) { const id = m[1].toLowerCase(); if (AGENTS[id]) agentId = id; return text.slice(m[0].length).trim(); }
+      return /^\s*AGENT/i.test(text) ? "" : text;
+    };
+    try {
+      const opts = { signal: ctl.signal, modelTier: deep ? "default" : "quick", onText: ({ text }) => { const body = parse(text); setActive(agentId); if (body) showAnswer(AGENTS[agentId].name, body); } };
+      const limits = await sample.limits().catch(() => null);
+      if (limits && limits.tools) opts.tools = buildTools(); else opts.cache = false;
+      const { text, truncated } = await sample(input, opts);
+      const body = parse(text) || "Feito.";
+      showAnswer(AGENTS[agentId].name, body + (truncated ? "\n(resposta cortada)" : ""));
+      setActive(agentId);
+      log(agentId, "reports to maiko", "ok");
+      turns.push({ role: "assistant", content: `AGENTE: ${AGENTS[agentId].name}\n${body}` });
+      turns = turns.slice(-20); store.set("turns", turns);
+      chip("st-claude", "ok");
+      speak(body.replace(/```[\s\S]*?```/g, " (código na tela) "));
+    } catch (e) {
+      turns.pop();
+      setMode("idle");
+      if (e && e.code === "cancelled") { showAnswer("Maiko", (e.text && parse(e.text)) || "Parado."); log("maiko", "interrompido"); }
+      else {
+        const msg = SAMPLE_MSG[e && e.code] || "Falha temporária ao falar com o Claude. Tente de novo.";
+        showAnswer("Maiko", msg); log("maiko", msg, "err");
+        if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) chip("st-claude", "off");
+      }
+    } finally {
+      busy = false; $("send").disabled = false; $("stop").hidden = true; ctl = null;
+      if (mode === "thinking") setMode("idle");
+    }
+  }
+
+  $("stop").addEventListener("click", () => ctl && ctl.abort());
+  $("form").addEventListener("submit", (e) => { e.preventDefault(); sendWithAck(); });
+  const qEl = $("q");
+  function autoGrow() { qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
+  qEl.addEventListener("input", () => {
+    autoGrow();
+    // Ditado: terminar a frase com "enviar" (ou "pronto") envia sozinho
+    if (SEND_WORD.test(qEl.value) && qEl.value.replace(SEND_WORD, "").trim()) { clearTimeout(qEl._send); qEl._send = setTimeout(() => { if (SEND_WORD.test(qEl.value)) ask(); }, 900); }
+  });
+  qEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendWithAck(); } });
+
+  // ---------- Inicialização ----------
+  log("maiko", "session boot");
+  log("maiko", `${tasks.filter(t => !t.done).length} tarefas abertas`, "ok");
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then((s) => {
+      sample = s;
+      chip("st-claude", s ? "ok" : "off");
+      log("maiko", s ? "connect claude" : "claude indisponível", s ? "ok" : "err");
+    });
+    window.claude.use("mcp").then(async (m) => {
+      mcp = m;
+      if (!m) { chip("st-gmail", "off"); chip("st-cal", "off"); log("scout", "conectores indisponíveis", "err"); return; }
+      try {
+        const { servers } = await m.listTools();
+        const st = (name) => { const s = servers.find(x => x.server === name); return !s ? "off" : s.authStatus === "needs_reauth" ? "off" : s.authStatus === "connected" ? "ok" : "warn"; };
+        chip("st-gmail", st("Gmail")); chip("st-cal", st("Google Calendar"));
+        log("scout", "conectores listados", "ok");
+      } catch { /* cada chamada trata seu erro */ }
+    });
+  } else {
+    chip("st-claude", "off"); chip("st-gmail", "off"); chip("st-cal", "off");
+    notice("Abra esta página pelo link do claude.ai para o Maiko conversar com o Claude e acessar Gmail e Agenda.");
+  }
+  if (turns.length) { const last = turns[turns.length - 1]; if (last.role === "assistant") { const m = last.content.match(/^AGENTE:\s*(\w+)\n/); const id = m && AGENTS[m[1].toLowerCase()] ? m[1].toLowerCase() : "maiko"; showAnswer(AGENTS[id].name, last.content.replace(/^AGENTE:.*\n/, "")); setActive(id); } }
+})();
+</script>
