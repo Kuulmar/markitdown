@@ -40,7 +40,7 @@ function Winget($id) {
   RefreshPath
 }
 
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force -ErrorAction SilentlyContinue
+try { Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force -ErrorAction Stop } catch { }
 RefreshPath; AddUserPath $BinDir
 
 # ---------- 0. Pre-requisitos: Git, Node, Claude Code ----------
