@@ -33,10 +33,10 @@ function Run($desc, [scriptblock]$sb, $tries = 3) {
   }
   Bad $desc; return $false
 }
-function Winget($id) {
+function Install-Pkg($id) {
   if (-not (Has winget)) { Bad "winget ausente: instale 'Instalador de Aplicativo' na Microsoft Store e rode de novo"; return }
-  Run "winget $id" { winget install -e --id $id --accept-source-agreements --accept-package-agreements --silent --scope user; if ($LASTEXITCODE -eq -1978335189) { $global:LASTEXITCODE = 0 } } 1 | Out-Null
-  if ($LASTEXITCODE -ne 0) { Run "winget $id (maquina)" { winget install -e --id $id --accept-source-agreements --accept-package-agreements --silent; if ($LASTEXITCODE -eq -1978335189) { $global:LASTEXITCODE = 0 } } 1 | Out-Null }
+  Run "winget $id" { winget.exe install -e --id $id --accept-source-agreements --accept-package-agreements --silent --scope user; if ($LASTEXITCODE -eq -1978335189) { $global:LASTEXITCODE = 0 } } 1 | Out-Null
+  if ($LASTEXITCODE -ne 0) { Run "winget $id (maquina)" { winget.exe install -e --id $id --accept-source-agreements --accept-package-agreements --silent; if ($LASTEXITCODE -eq -1978335189) { $global:LASTEXITCODE = 0 } } 1 | Out-Null }
   RefreshPath
 }
 
@@ -45,14 +45,14 @@ RefreshPath; AddUserPath $BinDir
 
 # ---------- 0. Pre-requisitos: Git, Node, Claude Code ----------
 Say '0/9 Pre-requisitos (Git, Node.js, Claude Code)'
-if (-not (Has git)) { Winget 'Git.Git' } else { Ok 'Git ja instalado' }
+if (-not (Has git)) { Install-Pkg 'Git.Git' } else { Ok 'Git ja instalado' }
 
 function NodeOk {
   if (-not (Has node)) { return $false }
   $v = [version]((node -v) -replace '^v','')
   return (($v.Major -eq 22 -and $v -ge [version]'22.22.2') -or ($v.Major -ge 24 -and $v.Major -le 26))
 }
-if (-not (NodeOk)) { Winget 'OpenJS.NodeJS.LTS' }
+if (-not (NodeOk)) { Install-Pkg 'OpenJS.NodeJS.LTS' }
 if (NodeOk) { Ok "Node $(node -v)" } else { Bad "Node incompativel ($(if (Has node) { node -v } else { 'ausente' })). Precisa 22.22.2+ ou 24-26. Desinstale o Node antigo em Configuracoes > Aplicativos e rode de novo." }
 
 if (-not (Has claude)) {
@@ -84,7 +84,7 @@ RefreshPath
 Say '5-6/9 uv, Headroom, MarkItDown'
 if (-not (Has uv)) {
   Run 'uv' { Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression; RefreshPath; $global:LASTEXITCODE = [int](-not (Has uv)) } 2 | Out-Null
-  if (-not (Has uv)) { Winget 'astral-sh.uv' }
+  if (-not (Has uv)) { Install-Pkg 'astral-sh.uv' }
 } else { Ok "uv $(uv --version)" }
 Run 'headroom-ai[all] (Python 3.13)' { uv tool install --python 3.13 'headroom-ai[all]' } 2 | Out-Null
 Run 'markitdown[all]'                { uv tool install 'markitdown[all]' } 2 | Out-Null
