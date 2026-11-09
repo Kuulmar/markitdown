@@ -20,6 +20,7 @@ function WaitUp($url, $secs, $name) {
 function Start-OmniRoute {
   if (Up "$OR/api/health/ping") { return }
   Write-Host 'Iniciando OmniRoute...' -ForegroundColor DarkGray
+  $env:OMNIROUTE_SERVER_HOST = '127.0.0.1'; $env:HOST = '127.0.0.1'
   omniroute serve --daemon --no-tray --no-open | Out-Null
   WaitUp "$OR/api/health/ping" 90 'OmniRoute'
 }
